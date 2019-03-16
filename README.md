@@ -1,5 +1,5 @@
 # uvmlogfilter
-A Java program to filter UVM logs
+A Scala program to filter UVM logs
 
 ## Purpose
 The goal of this program is to perform filtering of UVM logs to extract only informations that may be interesting to the user.
@@ -45,5 +45,18 @@ You can now press "Apply filters":
 
 and in the text area only the UVM records with id="c2" and time between 100 and 200 will be displayed. You can then choose to save the filtering results in a new file using "File -> Save as ..."
 
+## Limitations
+The program is currently only a prototype, but it can be used.
+However it does not come with any guarantee, so you run at your own risk.
+I am not a professional Scala programmer, so for this and other reasons, this program has tons of functional, stylistic and performance issues.
+Here I will list the possible improvements:
 
+* I have not tried the program on realistically sized logs. It may be unbearably slow.
+  A possible solution might be to use Spark.
+* The GUI is not very user friendly. For example, you have to select a logical operator to add a filter.
+* Error conditions are not checked very thoroughly
+* UVM messages line parsing may fail to recognize time units
+* Filters cannot be saved or restored
+
+  
 
