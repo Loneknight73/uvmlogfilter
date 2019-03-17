@@ -19,7 +19,7 @@
 
 package UvmLogFilterGUI
 
-import java.io.FileWriter
+import java.io.{File, FileWriter}
 
 import scalafx.Includes._
 import scalafx.application.JFXApp
@@ -35,21 +35,11 @@ import scalafx.scene.layout._
 import scalafx.stage.FileChooser
 import uvmlog._
 
-sealed trait FilterTreeItem
-
-case class LogicalOp(op: String) extends FilterTreeItem {
-  override def toString() = op
-}
-
-case class Filter(f: LogRecordFilter) extends FilterTreeItem {
-  override def toString: String = f.toString
-}
-
 object UvmLogFilterGUI extends JFXApp {
 
   val statusLabel = new Label("No file selected")
   val addFilterButton = new Button("Add filter")
-  val filterArea = buildFilterArea()
+  val filterArea = new FilterTreeView()
   val buttonArea = buildButtonArea()
   val textArea = buildTextArea()
   val centerPane = buildCenter()
@@ -92,17 +82,13 @@ object UvmLogFilterGUI extends JFXApp {
 
   def openFile: Unit = {
     val fileChooser = new FileChooser
+    val initialDir = new File(System.getProperty("user.dir"))
+    fileChooser.setInitialDirectory(initialDir)
     val selectedFile = fileChooser.showOpenDialog(stage)
     if (selectedFile != null) {
       statusLabel.text = "" + selectedFile
       uvmLogRec = new UvmLogFilter(selectedFile.getAbsolutePath())
     }
-  }
-
-  def buildFilterArea() = {
-
-    val tv = new TreeView[FilterTreeItem]()
-    tv
   }
 
   def filterSpecificPane (t: String): FilterPane = {
@@ -116,13 +102,13 @@ object UvmLogFilterGUI extends JFXApp {
     }
   }
 
-  def addFilterDialog(): Dialog[LogRecordFilter] = {
+  def addFilterDialog(): Dialog[FilterNode] = {
 
     val filtSpecPos = 2
     var filtSpecPane: Pane = null
     var fpane: FilterPane = null
 
-    val dialog = new Dialog[LogRecordFilter]() {
+    val dialog = new Dialog[FilterNode]() {
       title = "Create Filter"
     }
     val okButton = new ButtonType("Ok", ButtonData.OKDone)
@@ -135,7 +121,7 @@ object UvmLogFilterGUI extends JFXApp {
 
     dialog.resultConverter = { dialogButton =>
       if (dialogButton == okButton)
-         fpane.getFilter()
+         FilterNode(fpane.getFilter())
       else
         null
     }
@@ -170,11 +156,11 @@ object UvmLogFilterGUI extends JFXApp {
     val sep: Separator = new Separator()
     sep.setOrientation(Orientation.Vertical)
     val addLogicalOpButton = new Button("Add logical op")
-    addLogicalOpButton.onAction = (ae: ActionEvent) => addLogicalOp()
+    addLogicalOpButton.onAction = (ae: ActionEvent) => filterArea.addLogicalOp()
     val addFilterButton = new Button("Add filter")
-    addFilterButton.onAction = (ae: ActionEvent) => addFilter()
+    addFilterButton.onAction = (ae: ActionEvent) => filterArea.addFilter()
     val deleteSelectedButton = new Button("Delete selected")
-    deleteSelectedButton.onAction = (ae: ActionEvent) => deleteSelected()
+    deleteSelectedButton.onAction = (ae: ActionEvent) => filterArea.deleteSelected()
     val h = new HBox {
       padding = Insets(5)
       spacing = 5
@@ -184,69 +170,8 @@ object UvmLogFilterGUI extends JFXApp {
 
   }
 
-  def addFilter() = {
-    val sel = filterArea.getSelectionModel().getSelectedItem()
-    if (sel != null) {
-      sel.getValue() match {
-        case op: LogicalOp => {
-          val dialog = addFilterDialog()
-          val lrf = dialog.showAndWait()
-          lrf match {
-            case Some(l: LogRecordFilter) => {
-              val fti: FilterTreeItem = Filter(l)
-              sel.getChildren().add(new TreeItem(fti))
-            }
-            case _ => ()
-          }
-        }
-        case f: Filter => ()
-      }
-    }
-  }
-
-
-  def addLogicalOp() = {
-    // Logical Ops can be added only to an empty tree (they become the root)
-    // or to another logical Op
-    val sel = filterArea.getSelectionModel().getSelectedItem()
-    val isTreeEmpty = filterArea.getRoot()
-    (sel, isTreeEmpty) match {
-      // Empty tree: logical op becomes the root
-      case (_, null) => {
-        val dialog = addLogicalOpDialog()
-        val op = dialog.showAndWait()
-        op match {
-          case None => ()
-          case Some(lop: LogicalOp) => {
-            val fti: FilterTreeItem = lop
-            val ti = new TreeItem(fti)
-            ti.setExpanded(true)
-            filterArea.setRoot(ti)
-          }
-        }
-      }
-      // Non empty tree, nothing selected: do nothing
-      case (null, _) => ()
-      // Something actually selected
-      case (ti, _) => {
-        val dialog = addLogicalOpDialog()
-        val op = dialog.showAndWait()
-        op match {
-          case None => ()
-          case Some(lop: LogicalOp) => {
-            val fti: TreeItem[FilterTreeItem] = new TreeItem(lop)
-            fti.setExpanded(true)
-            // TODO: match on ti to add only if sel item is a LogicalOp
-            ti.getChildren().add(fti)
-          }
-        }
-      }
-    }
-
-  }
-
-  def addLogicalOpDialog(): Dialog[LogicalOp] = {
-    val dialog = new Dialog[LogicalOp]() {
+  def addLogicalOpDialog(): Dialog[LogicalOpNode] = {
+    val dialog = new Dialog[LogicalOpNode]() {
       title = "Add Logical Op"
     }
     val okButton = new ButtonType("Ok", ButtonData.OKDone)
@@ -270,62 +195,25 @@ object UvmLogFilterGUI extends JFXApp {
 
     dialog.resultConverter = { dialogButton =>
       if (dialogButton == okButton)
-        LogicalOp(opCombo.value.value)
+        LogicalOpNode(opCombo.value.value)
       else
         null
     }
     dialog
   }
 
-  def deleteSelected() = {
-    val sel = filterArea.getSelectionModel().getSelectedItem()
-    if (sel != null) {
-      if (sel.getParent != null) {
-        sel.getParent().getChildren.remove(sel)
-      }
-      else { // It should be the root
-        filterArea.setRoot(null)
-      }
-    }
-  }
-
-  def getFilterFromTree(root: TreeItem[FilterTreeItem]): Option[LogRecordFilter] = {
-    root.getValue() match {
-      case op: LogicalOp => {
-        val children = root.getChildren().map(ti => getFilterFromTree(ti)).toList
-        op.op match {
-          case "AND" => {
-            val t: Option[LogRecordFilter] = Some(TrueLogRecordFilter())
-            val res: Option[LogRecordFilter] = children.foldLeft(t)((of1 , of2) => {
-              (of1, of2) match {
-                case (Some(f1), Some(f2)) => Some (f1 && f2)
-                case (_, _) => None
-              }
-            })
-            res
-          }
-          case "OR"  => {
-            val f: Option[LogRecordFilter] = Some(FalseLogRecordFilter())
-            val res: Option[LogRecordFilter] = children.foldLeft(f)((of1 , of2) => {
-              (of1, of2) match {
-                case (Some(f1), Some(f2)) => Some (f1 || f2)
-                case (_, _) => None
-              }
-            })
-            res
-          }
-          case "NOT" => None
-        }
-      }
-      case f: Filter => Some(f.f)
-    }
-  }
-
   def applyFilters() = {
     if (uvmLogRec != null) {
-      val of = getFilterFromTree(filterArea.getRoot())
+      val of = filterArea.getModel().eval()
       of match {
-        case None => ()
+        case None => {
+          new Alert(AlertType.Error) {
+            initOwner(stage)
+            title = "Error"
+            headerText = "Error"
+            contentText = "Unable to parse filter expression"
+          }.showAndWait()
+        }
         case Some(f) => {
           val lb = uvmLogRec.getFiltered(f)
           val lbs = for {

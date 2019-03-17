@@ -90,6 +90,8 @@ trait LogRecordFilter {
   def ||(f: LogRecordFilter) = LogRecordFilter((l: LogRecord) => (this.f(l) || f.f(l)))
 
   def &&(f: LogRecordFilter) = LogRecordFilter((l: LogRecord) => (this.f(l) && f.f(l)))
+
+  def negate() = LogRecordFilter((l: LogRecord) => !(this.f(l)))
 }
 
 case class SeverityLogRecordFilter(s: String) extends LogRecordFilter {
@@ -178,8 +180,6 @@ case class FalseLogRecordFilter() extends LogRecordFilter {
 }
 
 object LogRecordFilter {
-  //def or (f1: LogRecordFilter, f2: LogRecordFilter): LogRecordFilter = f1 || f2
-  // def and (f1: LogRecordFilter, f2: LogRecordFilter): LogRecordFilter = f1 && f2
   def apply(x: LogRecord => Boolean): LogRecordFilter = new LogRecordFilter {
     def f: LogRecord => Boolean = x
   }
