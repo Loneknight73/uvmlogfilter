@@ -1,0 +1,3 @@
+# KERNEL: UVM_INFO /home/build/vlib1/vlib/uvm-1.2/src/reg/uvm_reg.svh(2820) @ 0: reporter [RegModel] Poked register "jb_partnership_reg_block.jb_reg_blocks[1].jb_recipe_reg": 'h000000000000005a
+# KERNEL: UVM_INFO @ 10: reporter [RegModel] Wrote register via DPI backdoor: jb_partnership_reg_block.jb_reg_blocks[1].jb_recipe_reg=0x53
+# KERNEL: UVM_INFO @ 20: reporter [RegModel] Wrote register via DPI backdoor: jb_partnership_reg_block.jb_reg_blocks[1].jb_recipe_reg=0x4c

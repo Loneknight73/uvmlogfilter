@@ -51,12 +51,14 @@ However it does not come with any guarantee, so you run at your own risk.
 I am not a professional Scala programmer, so for this and other reasons, this program has tons of functional, stylistic and performance issues.
 Here I will list some of the possible improvements:
 
-* I have not tried the program on realistically sized logs. It may be unbearably slow.
-  A possible solution might be to use Spark.
+* I have tried the program on some logs at work. Its performance was not a problem, but the logs were not huge.
+  On very big logs it may be unbearably slow. A possible solution, in this case, might be to use Spark.
 * The GUI is not very user friendly.
 * Error conditions are not checked very thoroughly
-* UVM messages line parsing may fail to recognize time units
+* UVM messages line parsing may fail to recognize time units (this should work now, but I have not tested it yet)
 * Filters cannot be saved or restored
+
+Contributing UVM logs on which the program does not work, or just as an help to test the program is welcome.
 
   
 

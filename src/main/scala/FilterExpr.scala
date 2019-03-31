@@ -1,6 +1,8 @@
 package uvmlog
 
+import spray.json._
 import uvmlog.LogRecordFilter
+
 import scala.collection.mutable.ListBuffer
 
 sealed trait FilterExpr {
@@ -71,3 +73,54 @@ case class FilterNode(f: LogRecordFilter) extends FilterExpr {
   def eval(): Option[LogRecordFilter] = Some(f)
 }
 
+object FiterExprJsonProtocol extends DefaultJsonProtocol {
+
+  implicit val idLogRecordFilterFormat: JsonFormat[IdLogRecordFilter] = jsonFormat2(IdLogRecordFilter)
+  implicit object LogRecordFilterFormat extends RootJsonFormat[LogRecordFilter] {
+    def write(f: LogRecordFilter): JsValue = {
+      f match {
+        case i: IdLogRecordFilter => JsObject("IdLogRecordFilter" -> i.toJson)
+        case _ => JsNumber(1)
+      }
+
+    }
+    override def read(json: JsValue): LogRecordFilter = {
+      null
+    }
+  }
+
+  implicit val filterExprFormat: JsonFormat[FilterExpr] = lazyFormat(FilterExprFormat)
+  implicit object LogicalOpFormat extends RootJsonFormat[LogicalOpNode] {
+    override def write(obj: LogicalOpNode): JsValue = {
+      val jsv = obj.children.toList.map(x => x.toJson).toVector
+      JsObject("LogicalOp" -> JsObject(
+        "op" -> JsString(obj.op),
+        "children" -> JsArray(jsv))
+      )
+    }
+
+    override def read(json: JsValue): LogicalOpNode = {
+      null
+    }
+  }
+
+  implicit object FilterNodeFormat extends RootJsonFormat[FilterNode] {
+    override def write(obj: FilterNode): JsValue = {
+      obj.f.toJson
+    }
+
+    override def read(json: JsValue): FilterNode = ???
+  }
+
+  implicit object FilterExprFormat extends RootJsonFormat[FilterExpr] {
+    override def write(f: FilterExpr): JsValue = f match {
+      case op: LogicalOpNode => op.toJson
+      case f: FilterNode => f.toJson
+    }
+
+    override def read(json: JsValue): FilterExpr = {
+      null
+    }
+  }
+
+}

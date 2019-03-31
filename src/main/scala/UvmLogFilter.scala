@@ -62,17 +62,25 @@ class UvmLogFilter(val filename: String) {
     }
   }
 
+  /*
+   * TODO: had to modify this method to handle missing file/line info (RegModel messages
+   * have that form). Need to refactor it also
+   */
   def getUvmMessage(line: String): Option[LogRecord] = {
     val severityPatt = "(UVM_INFO|UVM_WARNING|UVM_ERROR|UVM_FATAL)"
-    val idPatt = "\\[(.*)\\]"
-    val filePatt = "([\\S].*)"
-    val linenPatt = "\\(([\\d]+)\\)"
-    val timePatt = "@\\s+([\\d]+)" // TODO: update to take time units into account
+    val idPatt = "\\[(.*?)\\]"
+//    val filePatt = "([\\S].*)"
+//    val linenPatt = "\\(([\\d]+)\\)"
+    val fileLinenPatt = """(?:([\S].+?)\(([\d]+)\))?"""
+    val timePatt = "@\\s+([\\d]+)(?:\\s*[\\w]+)?" // TODO: updated to take time units into account. To be tested
     val hierPatt = "([\\S]+)"
-    val uvmregex = s"${severityPatt}\\s+${filePatt}${linenPatt}\\s+${timePatt}:\\s+${hierPatt}.*${idPatt}".r.unanchored
+    val uvmregex = s"${severityPatt}\\s*${fileLinenPatt}\\s*${timePatt}:\\s+${hierPatt}\\s+${idPatt}".r.unanchored
+    var file = ""
+    var linen = ""
 
     line match {
-      case uvmregex(severity, file, linen, time, hier, id) => {
+      case uvmregex(severity, ofile, olinen, time, hier, id) => {
+        if (ofile == null) {file = ""; linen = "0"} else {file = ofile; linen = olinen}
         Some(LogRecord(severity, file, linen.toInt, time.toInt, hier, id, ListBuffer()))
       }
       case _ => None
@@ -107,7 +115,6 @@ case class SeverityLogRecordFilter(s: String) extends LogRecordFilter {
 
 case class IdLogRecordFilter(s: String, matchtype: String) extends LogRecordFilter {
   def f: LogRecord => Boolean = { l =>
-    //TODO: is
     if (l.id.contains(s)) true else false
   }
 

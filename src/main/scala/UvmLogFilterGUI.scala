@@ -33,7 +33,9 @@ import scalafx.scene.control._
 import scalafx.scene.input._
 import scalafx.scene.layout._
 import scalafx.stage.FileChooser
+import spray.json._
 import uvmlog._
+import uvmlog.FiterExprJsonProtocol._
 
 object UvmLogFilterGUI extends JFXApp {
 
@@ -43,7 +45,8 @@ object UvmLogFilterGUI extends JFXApp {
   val buttonArea = buildButtonArea()
   val textArea = buildTextArea()
   val centerPane = buildCenter()
-
+  var selectedLogFile: File = null
+  var filtersFile: File = null
   val borderPane = new BorderPane
   var uvmLogRec: UvmLogFilter = null
 
@@ -56,6 +59,9 @@ object UvmLogFilterGUI extends JFXApp {
     openItem.onAction = (e: ActionEvent) => {
       openFile
     }
+    val reloadItem = new MenuItem("Reload")
+    reloadItem.onAction = (e:ActionEvent) => {reloadFile}
+
     val saveItem = new MenuItem("Save as...")
     openItem.accelerator = new KeyCodeCombination(KeyCode.S,
       KeyCombination.ControlDown)
@@ -65,6 +71,7 @@ object UvmLogFilterGUI extends JFXApp {
       if (selectedFile != null) {
         val fileWriter = new FileWriter(selectedFile)
         fileWriter.write(textArea.getText)
+        fileWriter.close()
       }
 
     }
@@ -75,19 +82,71 @@ object UvmLogFilterGUI extends JFXApp {
       sys.exit(0)
     }
 
-    fileMenu.items = List(openItem, saveItem, new SeparatorMenuItem, exitItem)
-    menuBar.menus = List(fileMenu)
+    fileMenu.items = List(openItem, reloadItem, saveItem, new SeparatorMenuItem, exitItem)
+
+    val filtersMenu = new Menu("Filters")
+    val loadFiltersItem = new MenuItem("Load...")
+    val saveFiltersItem = new MenuItem("Save")
+    val saveAsFiltersItem = new MenuItem("Save as...")
+    saveAsFiltersItem.onAction = (e:ActionEvent) => {
+      val fileChooser = new FileChooser
+      val initialDir = new File(System.getProperty("user.dir"))
+      fileChooser.setInitialDirectory(initialDir)
+      filtersFile = fileChooser.showSaveDialog(stage)
+      if (filtersFile != null) {
+        val s = serializeFilters()
+        s match {
+          case None =>
+          case Some(x) => {
+            val fileWriter = new FileWriter(filtersFile)
+            fileWriter.write(x)
+            fileWriter.close()
+          }
+        }
+
+      }
+    }
+    filtersMenu.items = List(loadFiltersItem, saveFiltersItem, saveAsFiltersItem)
+
+    menuBar.menus = List(fileMenu, filtersMenu)
     menuBar
   }
+
+  def serializeFilters(): Option[String] = {
+      val fexpr = filterArea.getModel()
+      Option(fexpr) match {
+        case None => {
+          new Alert(AlertType.Error) {
+            initOwner(stage)
+            title = "Error"
+            headerText = "Error"
+            contentText = "Unable to parse filter expression"
+          }.showAndWait()
+          None
+        }
+        case Some(f) => {
+          val s =f.toJson.prettyPrint
+          Some(s)
+        }
+      }
+    }
+
 
   def openFile: Unit = {
     val fileChooser = new FileChooser
     val initialDir = new File(System.getProperty("user.dir"))
     fileChooser.setInitialDirectory(initialDir)
-    val selectedFile = fileChooser.showOpenDialog(stage)
-    if (selectedFile != null) {
-      statusLabel.text = "" + selectedFile
-      uvmLogRec = new UvmLogFilter(selectedFile.getAbsolutePath())
+    selectedLogFile = fileChooser.showOpenDialog(stage)
+    if (selectedLogFile != null) {
+      statusLabel.text = "" + selectedLogFile
+      uvmLogRec = new UvmLogFilter(selectedLogFile.getAbsolutePath())
+    }
+  }
+
+  def reloadFile: Unit = {
+    if (selectedLogFile != null) {
+      statusLabel.text = "" + selectedLogFile
+      uvmLogRec = new UvmLogFilter(selectedLogFile.getAbsolutePath())
     }
   }
 
