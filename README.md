@@ -55,8 +55,7 @@ Here I will list some of the possible improvements:
   On very big logs it may be unbearably slow. A possible solution, in this case, might be to use Spark.
 * The GUI is not very user friendly.
 * Error conditions are not checked very thoroughly
-* UVM messages line parsing may fail to recognize time units (this should work now, but I have not tested it yet)
-* Filters cannot be saved or restored
+* UVM messages line parsing may fail 
 
 Contributing UVM logs on which the program does not work, or just as an help to test the program is welcome.
 
