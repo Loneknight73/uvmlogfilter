@@ -37,6 +37,8 @@ import spray.json._
 import uvmlog._
 import uvmlog.FiterExprJsonProtocol._
 
+import scala.io.Source
+
 object UvmLogFilterGUI extends JFXApp {
 
   val statusLabel = new Label("No file selected")
@@ -86,7 +88,33 @@ object UvmLogFilterGUI extends JFXApp {
 
     val filtersMenu = new Menu("Filters")
     val loadFiltersItem = new MenuItem("Load...")
+    loadFiltersItem.onAction = (e: ActionEvent) => {
+      val fileChooser = new FileChooser
+      val initialDir = new File(System.getProperty("user.dir"))
+      fileChooser.setInitialDirectory(initialDir)
+      val f = fileChooser.showOpenDialog(stage)
+      if (f != null) {
+        val x = deserializeFilters(f)
+        filtersFile = f
+      }
+
+    }
+
     val saveFiltersItem = new MenuItem("Save")
+    saveFiltersItem.onAction = (e:ActionEvent) => {
+      if (filtersFile != null) {
+        val s = serializeFilters()
+        s match {
+          case None =>
+          case Some(x) => {
+            val fileWriter = new FileWriter(filtersFile)
+            fileWriter.write(x)
+            fileWriter.close()
+          }
+        }
+      }
+    }
+
     val saveAsFiltersItem = new MenuItem("Save as...")
     saveAsFiltersItem.onAction = (e:ActionEvent) => {
       val fileChooser = new FileChooser
@@ -125,12 +153,17 @@ object UvmLogFilterGUI extends JFXApp {
           None
         }
         case Some(f) => {
-          val s =f.toJson.prettyPrint
+          val s =f.toJson.sortedPrint
           Some(s)
         }
       }
     }
 
+  def deserializeFilters(file: File) = {
+    val json = Source.fromFile(file).mkString.parseJson
+    val op = json.convertTo[FilterExpr]
+    filterArea.setModel(op)
+  }
 
   def openFile: Unit = {
     val fileChooser = new FileChooser

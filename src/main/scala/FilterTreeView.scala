@@ -11,6 +11,23 @@ class FilterTreeView extends TreeView[FilterExpr] {
 
   def getModel(): FilterExpr = model
 
+  def makeTree(f: FilterExpr): TreeItem[FilterExpr] = {
+    f match {
+      case f: LogicalOpNode =>
+        val item = new TreeItem[FilterExpr](f)
+        item.children = f.children.map(c => makeTree(c))
+        item
+      case _ => new TreeItem(f)
+    }
+  }
+
+  def setModel(root: FilterExpr) = {
+    val ti = makeTree(root)
+    ti.setExpanded(true)
+    this.setRoot(ti)
+    model = root
+  }
+
   def getNearestLogOp(ti: TreeItem[FilterExpr]): Option[TreeItem[FilterExpr]] = {
     // If nothing selected, add to the root
     if (ti == null) {
@@ -118,19 +135,19 @@ class FilterTreeView extends TreeView[FilterExpr] {
     val selected = this.getSelectionModel().getSelectedItem()
     if (selected != null) {
       val parent = selected.getParent
-        if (parent != null) {
-          parent.getChildren.remove(selected)
-          val x = parent.getValue()
-          x match {
-            case op: LogicalOpNode => op.remove(selected.getValue())
-            case _ => () // Should never happen
-          }
-        }
-        else { // The root was selected
-          this.setRoot(null)
-          model = null
+      if (parent != null) {
+        parent.getChildren.remove(selected)
+        val x = parent.getValue()
+        x match {
+          case op: LogicalOpNode => op.remove(selected.getValue())
+          case _ => () // Should never happen
         }
       }
+      else { // The root was selected
+        this.setRoot(null)
+        model = null
+      }
+    }
   }
 
 }
