@@ -57,6 +57,8 @@ Here I will list some of the possible improvements:
 * Error conditions are not checked very thoroughly
 * UVM messages line parsing may fail 
 
+Please consider that the screenshots above may not correspond to the latest version, and that some functionality may have been added.
+
 Contributing UVM logs on which the program does not work, or just as an help to test the program is welcome.
 
   
