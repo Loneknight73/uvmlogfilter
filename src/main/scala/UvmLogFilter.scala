@@ -90,6 +90,10 @@ class UvmLogFilter(val filename: String) {
   def getFiltered(lrf: LogRecordFilter): ListBuffer[LogRecord] = {
     recordList.filter(lrf.f)
   }
+
+  def getRecordsNum(): Int = {
+    recordList.length
+  }
 }
 
 trait LogRecordFilter {

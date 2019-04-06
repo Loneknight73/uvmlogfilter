@@ -32,6 +32,7 @@ import scalafx.scene.control.ButtonBar.ButtonData
 import scalafx.scene.control._
 import scalafx.scene.input._
 import scalafx.scene.layout._
+import scalafx.scene.text.Font
 import scalafx.stage.FileChooser
 import spray.json._
 import uvmlog._
@@ -41,7 +42,7 @@ import scala.io.Source
 
 object UvmLogFilterGUI extends JFXApp {
 
-  val statusLabel = new Label("No file selected")
+  val statusArea = buildStatusArea()
   val addFilterButton = new Button("Add filter")
   val filterArea = new FilterTreeView()
   val buttonArea = buildButtonArea()
@@ -62,12 +63,14 @@ object UvmLogFilterGUI extends JFXApp {
       openFile
     }
     val reloadItem = new MenuItem("Reload")
-    reloadItem.onAction = (e:ActionEvent) => {reloadFile}
+    reloadItem.onAction = (e: ActionEvent) => {
+      reloadFile
+    }
 
     val saveItem = new MenuItem("Save as...")
     openItem.accelerator = new KeyCodeCombination(KeyCode.S,
       KeyCombination.ControlDown)
-    saveItem.onAction = (e:ActionEvent) => {
+    saveItem.onAction = (e: ActionEvent) => {
       val fileChooser = new FileChooser
       val selectedFile = fileChooser.showSaveDialog(stage)
       if (selectedFile != null) {
@@ -96,12 +99,12 @@ object UvmLogFilterGUI extends JFXApp {
       if (f != null) {
         val x = deserializeFilters(f)
         filtersFile = f
+        statusArea.setFilter(filtersFile.getAbsolutePath())
       }
-
     }
 
     val saveFiltersItem = new MenuItem("Save")
-    saveFiltersItem.onAction = (e:ActionEvent) => {
+    saveFiltersItem.onAction = (e: ActionEvent) => {
       if (filtersFile != null) {
         val s = serializeFilters()
         s match {
@@ -116,7 +119,7 @@ object UvmLogFilterGUI extends JFXApp {
     }
 
     val saveAsFiltersItem = new MenuItem("Save as...")
-    saveAsFiltersItem.onAction = (e:ActionEvent) => {
+    saveAsFiltersItem.onAction = (e: ActionEvent) => {
       val fileChooser = new FileChooser
       val initialDir = new File(System.getProperty("user.dir"))
       fileChooser.setInitialDirectory(initialDir)
@@ -141,23 +144,23 @@ object UvmLogFilterGUI extends JFXApp {
   }
 
   def serializeFilters(): Option[String] = {
-      val fexpr = filterArea.getModel()
-      Option(fexpr) match {
-        case None => {
-          new Alert(AlertType.Error) {
-            initOwner(stage)
-            title = "Error"
-            headerText = "Error"
-            contentText = "Unable to parse filter expression"
-          }.showAndWait()
-          None
-        }
-        case Some(f) => {
-          val s =f.toJson.sortedPrint
-          Some(s)
-        }
+    val fexpr = filterArea.getModel()
+    Option(fexpr) match {
+      case None => {
+        new Alert(AlertType.Error) {
+          initOwner(stage)
+          title = "Error"
+          headerText = "Error"
+          contentText = "Unable to parse filter expression"
+        }.showAndWait()
+        None
+      }
+      case Some(f) => {
+        val s = f.toJson.sortedPrint
+        Some(s)
       }
     }
+  }
 
   def deserializeFilters(file: File) = {
     val json = Source.fromFile(file).mkString.parseJson
@@ -171,19 +174,21 @@ object UvmLogFilterGUI extends JFXApp {
     fileChooser.setInitialDirectory(initialDir)
     selectedLogFile = fileChooser.showOpenDialog(stage)
     if (selectedLogFile != null) {
-      statusLabel.text = "" + selectedLogFile
+      statusArea.setLog(selectedLogFile.getAbsolutePath())
       uvmLogRec = new UvmLogFilter(selectedLogFile.getAbsolutePath())
+      statusArea.setTotal(uvmLogRec.getRecordsNum())
     }
   }
 
   def reloadFile: Unit = {
     if (selectedLogFile != null) {
-      statusLabel.text = "" + selectedLogFile
+      statusArea.setLog(selectedLogFile.getAbsolutePath()) // useless?
       uvmLogRec = new UvmLogFilter(selectedLogFile.getAbsolutePath())
+      statusArea.setTotal(uvmLogRec.getRecordsNum())
     }
   }
 
-  def filterSpecificPane (t: String): FilterPane = {
+  def filterSpecificPane(t: String): FilterPane = {
     t match {
       case "Id" => new IdFilterPane(None)
       case "Severity" => new SeverityFilterPane(None)
@@ -213,7 +218,7 @@ object UvmLogFilterGUI extends JFXApp {
 
     dialog.resultConverter = { dialogButton =>
       if (dialogButton == okButton)
-         FilterNode(fpane.getFilter())
+        FilterNode(fpane.getFilter())
       else
         null
     }
@@ -314,6 +319,7 @@ object UvmLogFilterGUI extends JFXApp {
           } yield (l)
           val text = lbs.mkString("\n")
           textArea.text = text
+          statusArea.setFilt(lb.length)
         }
       }
     }
@@ -333,6 +339,7 @@ object UvmLogFilterGUI extends JFXApp {
     ta.setEditable(false)
     ta.prefWidth = 100
     ta.prefHeight = 400
+    ta.setFont(Font.font("monospaced"))
     ta
   }
 
@@ -343,6 +350,10 @@ object UvmLogFilterGUI extends JFXApp {
     pane
   }
 
+  def buildStatusArea(): StatusView = {
+    new StatusView()
+  }
+
   stage = new JFXApp.PrimaryStage {
 
     title = "UVM Log Filter"
@@ -350,7 +361,7 @@ object UvmLogFilterGUI extends JFXApp {
       val menuBar = buildMenuBar()
 
       borderPane.top = menuBar
-      borderPane.bottom = statusLabel
+      borderPane.bottom = statusArea
       borderPane.center = centerPane
       root = borderPane
     }

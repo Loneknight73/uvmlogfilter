@@ -8,6 +8,9 @@ object FiterExprJsonProtocol extends DefaultJsonProtocol {
   implicit val idLogRecordFilterFormat: JsonFormat[IdLogRecordFilter] = jsonFormat2(IdLogRecordFilter)
   implicit val severityLogRecordFilterFormat: JsonFormat[SeverityLogRecordFilter] = jsonFormat1(SeverityLogRecordFilter)
   implicit val timeLogRecordFilterFormat: JsonFormat[TimeLogRecordFilter] = jsonFormat2(TimeLogRecordFilter)
+  implicit val hierLogRecordFilterFormat: JsonFormat[HierLogRecordFilter] = jsonFormat1(HierLogRecordFilter)
+  implicit val compNameLogRecordFilter: JsonFormat[CompNameLogRecordFilter] = jsonFormat(CompNameLogRecordFilter, "c")
+  implicit val textContainsLogRecordFilter: JsonFormat[TextContainsLogRecordFilter] = jsonFormat1(TextContainsLogRecordFilter)
 
   implicit object LogRecordFilterFormat extends RootJsonFormat[LogRecordFilter] {
     override def write(f: LogRecordFilter): JsValue = {
@@ -15,20 +18,27 @@ object FiterExprJsonProtocol extends DefaultJsonProtocol {
         case x: SeverityLogRecordFilter => JsObject("SeverityLogRecordFilter" -> x.toJson)
         case x: IdLogRecordFilter => JsObject("IdLogRecordFilter" -> x.toJson)
         case x: TimeLogRecordFilter => JsObject("TimeLogRecordFilter" -> x.toJson)
-        case _ => JsNumber(1)
+        case x: HierLogRecordFilter => JsObject("HierLogRecordFilter" -> x.toJson)
+        case x: CompNameLogRecordFilter => JsObject("CompNameLogRecordFilter" -> x.toJson)
+        case x: TextContainsLogRecordFilter => JsObject("TextContainsLogRecordFilter" -> x.toJson)
+        case _ => serializationError("Error")
       }
     }
 
     override def read(json: JsValue): LogRecordFilter = {
       json match {
         case JsObject(map) => {
-          val l = List("SeverityLogRecordFilter", "IdLogRecordFilter", "TimeLogRecordFilter").
+          val l = List("SeverityLogRecordFilter", "IdLogRecordFilter", "TimeLogRecordFilter",
+            "HierLogRecordFilter", "CompNameLogRecordFilter", "TextContainsLogRecordFilter").
             map(i => map.contains(i))
           val i = l.indexOf(true)
           i match {
             case 0 => map("SeverityLogRecordFilter").convertTo[SeverityLogRecordFilter]
             case 1 => map("IdLogRecordFilter").convertTo[IdLogRecordFilter]
             case 2 => map("TimeLogRecordFilter").convertTo[TimeLogRecordFilter]
+            case 3 => map("HierLogRecordFilter").convertTo[HierLogRecordFilter]
+            case 4 => map("CompNameLogRecordFilter").convertTo[CompNameLogRecordFilter]
+            case 5 => map("TextContainsLogRecordFilter").convertTo[TextContainsLogRecordFilter]
             case _ => deserializationError("Error")
           }
         }
@@ -53,7 +63,7 @@ object FiterExprJsonProtocol extends DefaultJsonProtocol {
         case JsObject(m) => {
           List("op", "children").map(i => m.contains(i)).toArray match {
             case Array(true, true) => {
-              val op: LogicalOpNode = LogicalOpNode(m("op").toString())
+              val op: LogicalOpNode = LogicalOpNode(m("op").convertTo[String])
               val children = m("children")
               children match {
                 case JsArray(jsv) => {
