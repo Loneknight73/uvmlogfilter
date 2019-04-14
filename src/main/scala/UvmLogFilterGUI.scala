@@ -345,8 +345,12 @@ object UvmLogFilterGUI extends JFXApp {
 
   def buildCenter(): Pane = {
     val pane = new VBox()
+    val spane = new SplitPane()
+    spane.items.addAll(filterArea, textArea)
+    spane.setOrientation(Orientation.Vertical)
+    spane.setDividerPositions(0.4)
     pane.spacing = 5
-    pane.children = List(buttonArea, filterArea, textArea)
+    pane.children = List(buttonArea, spane)
     pane
   }
 
