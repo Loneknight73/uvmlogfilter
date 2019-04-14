@@ -25,7 +25,7 @@ import scala.io.Source
 case class LogRecord(severity: String,
                      file: String,
                      linen: Int,
-                     time: Int,
+                     time: BigDecimal,
                      hier: String,
                      id: String,
                      var message: ListBuffer[String])
@@ -72,7 +72,7 @@ class UvmLogFilter(val filename: String) {
 //    val filePatt = "([\\S].*)"
 //    val linenPatt = "\\(([\\d]+)\\)"
     val fileLinenPatt = """(?:([\S].+?)\(([\d]+)\))?"""
-    val timePatt = "@\\s+([\\d]+)(?:\\s*[\\w]+)?" // TODO: updated to take time units into account. To be tested
+    val timePatt = """@\s+([\d]+(?:\.[\d]+)?)(?:\s*[\w]+)?""" // TODO: updated to take time units into account. To be tested
     val hierPatt = "([\\S]+)"
     val uvmregex = s"${severityPatt}\\s*${fileLinenPatt}\\s*${timePatt}:\\s+${hierPatt}\\s+${idPatt}".r.unanchored
     var file = ""
@@ -81,7 +81,7 @@ class UvmLogFilter(val filename: String) {
     line match {
       case uvmregex(severity, ofile, olinen, time, hier, id) => {
         if (ofile == null) {file = ""; linen = "0"} else {file = ofile; linen = olinen}
-        Some(LogRecord(severity, file, linen.toInt, time.toInt, hier, id, ListBuffer()))
+        Some(LogRecord(severity, file, linen.toInt, BigDecimal(time), hier, id, ListBuffer()))
       }
       case _ => None
     }
@@ -127,7 +127,7 @@ case class IdLogRecordFilter(s: String, matchtype: String) extends LogRecordFilt
   }
 }
 
-case class TimeLogRecordFilter(min: BigInt, max: BigInt) extends LogRecordFilter {
+case class TimeLogRecordFilter(min: BigDecimal, max: BigDecimal) extends LogRecordFilter {
   def f: LogRecord => Boolean = { l =>
     if (l.time >= min && l.time <= max) true else false
   }

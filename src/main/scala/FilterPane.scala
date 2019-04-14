@@ -111,13 +111,13 @@ class TimeFilterPane(f: Option[TimeLogRecordFilter]) extends FilterPane {
   }
 
   override def getFilter(): LogRecordFilter = {
-    val min: BigInt = minText.text() match {
+    val min: BigDecimal = minText.text() match {
       case "" => 0
-      case n: String => BigInt(n)
+      case n: String => BigDecimal(n)
     }
-    val max: BigInt = maxText.text() match {
-      case "" => BigInt(2).pow(64)-1
-      case n: String => BigInt(n)
+    val max: BigDecimal = maxText.text() match {
+      case "" => BigDecimal(Double.MaxValue) // Arbitrary upper limit if the user does not bother to specify it
+      case n: String => BigDecimal(n)
     }
     TimeLogRecordFilter(min, max)
   }

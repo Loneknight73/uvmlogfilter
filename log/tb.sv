@@ -1,5 +1,4 @@
-// Code your testbench here
-// or browse Examples
+`timescale 1ns/1ps
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 
@@ -15,6 +14,8 @@ class my_obj extends uvm_object;
   `uvm_field_int(c, UVM_DEFAULT)
   `uvm_object_utils_end
 
+
+
 endclass
 
 class my_component extends uvm_component;
@@ -27,7 +28,7 @@ class my_component extends uvm_component;
     endfunction
 
     task run_phase(uvm_phase phase);
-        int d;
+        real d;
 
         phase.raise_objection(this);
         o = my_obj::type_id::create("o", this);
@@ -37,8 +38,8 @@ class my_component extends uvm_component;
             8: `uvm_info(get_name(), $sformatf("o = \n%s", o.sprint()), UVM_NONE)
             1: `uvm_warning(get_name(), $sformatf("o = \n%s", o.sprint()))
             endcase
-            d = $urandom_range(1,5);
-            #d;
+            d = $urandom_range(100,500);
+            #((d/100.0)*1ns);
         end
         phase.drop_objection(this);
 
@@ -87,6 +88,7 @@ endclass
 module tb;
 
     initial begin
+        $timeformat(-9, 2, "ns", 4);
         run_test("my_test");
     end
 
