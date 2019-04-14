@@ -17,12 +17,10 @@
 
  */
 
-package uvmlog
-
+package com.github.uvmlogfilter.model
 import spray.json._
-import uvmlog._
 
-object FiterExprJsonProtocol extends DefaultJsonProtocol {
+object FilterExprJsonProtocol extends DefaultJsonProtocol {
 
   implicit val idLogRecordFilterFormat: JsonFormat[IdLogRecordFilter] = jsonFormat2(IdLogRecordFilter)
   implicit val severityLogRecordFilterFormat: JsonFormat[SeverityLogRecordFilter] = jsonFormat1(SeverityLogRecordFilter)

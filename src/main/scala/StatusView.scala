@@ -1,4 +1,3 @@
-package UvmLogFilterGUI
 /*
     uvmlogfilter - A Java program to filter UVM logs
     Copyright (C) 2019-present  Loneknight73
@@ -17,6 +16,7 @@ package UvmLogFilterGUI
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
  */
+package com.github.uvmlogfilter.gui
 
 import scalafx.scene.control.Label
 import scalafx.scene.layout.VBox

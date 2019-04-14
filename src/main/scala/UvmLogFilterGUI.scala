@@ -17,7 +17,7 @@
 
  */
 
-package UvmLogFilterGUI
+package com.github.uvmlogfilter.gui
 
 import java.io.{File, FileWriter}
 
@@ -35,8 +35,8 @@ import scalafx.scene.layout._
 import scalafx.scene.text.Font
 import scalafx.stage.FileChooser
 import spray.json._
-import uvmlog._
-import uvmlog.FiterExprJsonProtocol._
+import com.github.uvmlogfilter.model._
+import com.github.uvmlogfilter.model.FilterExprJsonProtocol._
 
 import scala.io.Source
 

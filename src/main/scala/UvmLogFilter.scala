@@ -17,7 +17,7 @@
 
  */
 
-package uvmlog
+package com.github.uvmlogfilter.model
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source

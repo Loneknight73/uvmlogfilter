@@ -17,12 +17,12 @@
 
  */
 
-package UvmLogFilterGUI
+package com.github.uvmlogfilter.gui
 
 import scalafx.Includes._
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.{Alert, TreeItem, TreeView}
-import uvmlog.{FilterExpr, FilterNode, LogRecordFilter, LogicalOpNode}
+import com.github.uvmlogfilter.model._
 
 class FilterTreeView extends TreeView[FilterExpr] {
 

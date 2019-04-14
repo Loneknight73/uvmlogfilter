@@ -17,13 +17,13 @@
 
  */
 
-package UvmLogFilterGUI
+package com.github.uvmlogfilter.gui
 
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.Insets
 import scalafx.scene.control.{ComboBox, Label, TextField}
 import scalafx.scene.layout.{GridPane, Pane}
-import uvmlog._
+import com.github.uvmlogfilter.model._
 
 trait FilterPane {
   def getPane(): Pane
