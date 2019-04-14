@@ -119,7 +119,11 @@ case class SeverityLogRecordFilter(s: String) extends LogRecordFilter {
 
 case class IdLogRecordFilter(s: String, matchtype: String) extends LogRecordFilter {
   def f: LogRecord => Boolean = { l =>
-    if (l.id.contains(s)) true else false
+    matchtype match {
+      case "is" => l.id == s
+      case "contains" => l.id.contains(s)
+      case _ => false // TODO: how to handle this case?
+    }
   }
 
   override def toString: String = {
