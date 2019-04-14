@@ -69,8 +69,6 @@ class UvmLogFilter(val filename: String) {
   def getUvmMessage(line: String): Option[LogRecord] = {
     val severityPatt = "(UVM_INFO|UVM_WARNING|UVM_ERROR|UVM_FATAL)"
     val idPatt = "\\[(.*?)\\]"
-//    val filePatt = "([\\S].*)"
-//    val linenPatt = "\\(([\\d]+)\\)"
     val fileLinenPatt = """(?:([\S].+?)\(([\d]+)\))?"""
     val timePatt = """@\s+([\d]+(?:\.[\d]+)?)(?:\s*[\w]+)?""" // TODO: updated to take time units into account. To be tested
     val hierPatt = "([\\S]+)"
@@ -97,6 +95,7 @@ class UvmLogFilter(val filename: String) {
 }
 
 trait LogRecordFilter {
+
   def f: LogRecord => Boolean
 
   def ||(f: LogRecordFilter) = LogRecordFilter((l: LogRecord) => (this.f(l) || f.f(l)))

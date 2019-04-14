@@ -19,14 +19,19 @@
 
 package com.github.uvmlogfilter.gui
 
+import com.github.uvmlogfilter.model._
 import scalafx.Includes._
 import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.{Alert, TreeItem, TreeView}
-import com.github.uvmlogfilter.model._
+import scalafx.scene.input.MouseEvent
 
 class FilterTreeView extends TreeView[FilterExpr] {
 
   var model: FilterExpr = null
+
+  this.onMouseClicked = (me: MouseEvent) => {
+    if (me.clickCount == 2) modifySelected()
+  }
 
   def getModel(): FilterExpr = model
 
@@ -65,8 +70,8 @@ class FilterTreeView extends TreeView[FilterExpr] {
     }
   }
 
-  def getFilterFromDialog(): Option[FilterNode] = {
-    val dialog = UvmLogFilterGUI.addFilterDialog()
+  def getFilterFromDialog(fn: Option[FilterNode]): Option[FilterNode] = {
+    val dialog = UvmLogFilterGUI.addFilterDialog(fn)
     val x = dialog.showAndWait()
     x match {
       case None => None
@@ -75,8 +80,8 @@ class FilterTreeView extends TreeView[FilterExpr] {
   }
 
 
-  def getLogOpFromDialog(): Option[LogicalOpNode] = {
-    val dialog = UvmLogFilterGUI.addLogicalOpDialog()
+  def getLogOpFromDialog(lop: Option[LogicalOpNode]): Option[LogicalOpNode] = {
+    val dialog = UvmLogFilterGUI.addLogicalOpDialog(lop)
     val x = dialog.showAndWait()
     x match {
       case None => None
@@ -98,7 +103,7 @@ class FilterTreeView extends TreeView[FilterExpr] {
         }.showAndWait()
       }
       case Some(parent) => {
-        val maybeFilter = getFilterFromDialog()
+        val maybeFilter = getFilterFromDialog(None)
         maybeFilter match {
           case None => ()
           case Some(newFilt) => {
@@ -122,7 +127,7 @@ class FilterTreeView extends TreeView[FilterExpr] {
     // or to another logical Op
     val selected = this.getSelectionModel().getSelectedItem()
 
-    val maybeLogOp = getLogOpFromDialog()
+    val maybeLogOp = getLogOpFromDialog(None)
     maybeLogOp match {
       case None => ()
       case Some(newOp) => {
@@ -149,6 +154,92 @@ class FilterTreeView extends TreeView[FilterExpr] {
       }
     }
   }
+
+  def substituteOp(oldfti: TreeItem[FilterExpr], newOp: LogicalOpNode) = {
+    val parent = oldfti.getParent()
+    if (parent != null) {
+      val oldOp = oldfti.value()
+      oldOp match {
+        case lop: LogicalOpNode => {
+          // FilterExpr
+          val parentOp = parent.getValue
+          parentOp match {
+            case l: LogicalOpNode => {
+              lop.children.map(c => newOp.add(c))
+              l.remove(oldOp)
+              l.add(newOp)
+              // TreeItem
+              val newfti: TreeItem[FilterExpr] = new TreeItem(newOp)
+              newfti.children.addAll(oldfti.getChildren)
+              newfti.setExpanded(true)
+              parent.getChildren().add(newfti)
+              parent.getChildren().remove(oldfti)
+            }
+            case _ => ()
+          }
+        }
+        case _ => ()
+      }
+    }
+    else { // Root
+      val oldOp = oldfti.value()
+      oldOp match {
+        case lop: LogicalOpNode => {
+          lop.children.map(c => newOp.add(c))
+          val newfti: TreeItem[FilterExpr] = new TreeItem(newOp)
+          newfti.children.addAll(oldfti.getChildren)
+          newfti.setExpanded(true)
+          this.setRoot(newfti)
+          model = newOp
+        }
+        case _ => ()
+      }
+    }
+  }
+
+
+  def substituteFn(oldfti: TreeItem[FilterExpr], newFn: FilterNode) = {
+    val addTo = getNearestLogOp(oldfti)
+    addTo match {
+      case None => () // TODO: bug
+      case Some(parent) => {
+        val newfti: TreeItem[FilterExpr] = new TreeItem(newFn)
+        newfti.setExpanded(true)
+        parent.getChildren().remove(oldfti)
+        parent.getChildren.add(newfti)
+        val p = parent.value()
+        p match {
+          case op: LogicalOpNode => {
+            op.remove(oldfti.getValue())
+            op.add(newFn)
+          }
+        }
+      }
+    }
+  }
+
+  def modifySelected() = {
+    val selected = this.getSelectionModel().getSelectedItem()
+    if (selected != null) {
+      selected.getValue() match {
+        case lop: LogicalOpNode => {
+          val maybeLogOp = getLogOpFromDialog(Some(lop))
+          maybeLogOp match {
+            case None => ()
+            case Some(newOp) => substituteOp(selected, newOp)
+          }
+        }
+        case fn: FilterNode => {
+          val maybeFiltNode = getFilterFromDialog(Some(fn))
+          maybeFiltNode match {
+            case None => ()
+            case Some(newFn) => substituteFn(selected, newFn)
+          }
+        }
+      }
+    }
+  }
+
 
   def deleteSelected() = {
     val selected = this.getSelectionModel().getSelectedItem()

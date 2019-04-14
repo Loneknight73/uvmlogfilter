@@ -188,18 +188,30 @@ object UvmLogFilterGUI extends JFXApp {
     }
   }
 
-  def filterSpecificPane(t: String): FilterPane = {
+  def filterSpecificPane(t: String, initFilt: Option[LogRecordFilter]): FilterPane = {
     t match {
-      case "Id" => new IdFilterPane(None)
-      case "Severity" => new SeverityFilterPane(None)
-      case "Time" => new TimeFilterPane(None)
-      case "Hierarchy" => new HierFilterPane(None)
-      case "Component" => new CompNameFilterPane(None)
-      case "Text" => new TextContainsFilterPane(None)
+      case "Id" => new IdFilterPane(initFilt)
+      case "Severity" => new SeverityFilterPane(initFilt)
+      case "Time" => new TimeFilterPane(initFilt)
+      case "Hierarchy" => new HierFilterPane(initFilt)
+      case "Component" => new CompNameFilterPane(initFilt)
+      case "Text" => new TextContainsFilterPane(initFilt)
     }
   }
 
-  def addFilterDialog(): Dialog[FilterNode] = {
+  def filterToString(fn: FilterNode): String = {
+    fn.f match {
+      case _:IdLogRecordFilter => "Id"
+      case _:SeverityLogRecordFilter => "Severity"
+      case _:TimeLogRecordFilter => "Time"
+      case _:HierLogRecordFilter => "Hierarchy"
+      case _:CompNameLogRecordFilter => "Component"
+      case _:TextContainsLogRecordFilter => "Text"
+      case _ => ""
+    }
+  }
+
+  def addFilterDialog(fn: Option[FilterNode]): Dialog[FilterNode] = {
 
     val filtSpecPos = 2
     var filtSpecPane: Pane = null
@@ -213,7 +225,10 @@ object UvmLogFilterGUI extends JFXApp {
 
     val filterTypeCombo = new ComboBox[String]() {
       items = ObservableBuffer("Id", "Severity", "Time", "Hierarchy", "Component", "Text")
-      value = "Id"
+      value = fn match {
+        case Some(f) => filterToString(f)
+        case None => "Id"
+      }
     }
 
     dialog.resultConverter = { dialogButton =>
@@ -230,13 +245,16 @@ object UvmLogFilterGUI extends JFXApp {
 
       add(new Label("Filter type: "), 0, 0)
       add(filterTypeCombo, 1, 0)
-      fpane = filterSpecificPane(filterTypeCombo.value.value)
+      fpane = fn match {
+        case Some(f) => filterSpecificPane (filterTypeCombo.value.value, Some(f.f))
+        case None => filterSpecificPane (filterTypeCombo.value.value, None)
+      }
       filtSpecPane = fpane.getPane()
       add(filtSpecPane, filtSpecPos, 0)
     }
 
     filterTypeCombo.onAction = (e: ActionEvent) => {
-      fpane = filterSpecificPane(filterTypeCombo.selectionModel.value.selectedItem.value)
+      fpane = filterSpecificPane(filterTypeCombo.selectionModel.value.selectedItem.value, None)
       grid.getChildren.remove(filtSpecPane)
       filtSpecPane = fpane.getPane()
       grid.add(filtSpecPane, filtSpecPos, 0)
@@ -267,7 +285,7 @@ object UvmLogFilterGUI extends JFXApp {
 
   }
 
-  def addLogicalOpDialog(): Dialog[LogicalOpNode] = {
+  def addLogicalOpDialog(lop: Option[LogicalOpNode]): Dialog[LogicalOpNode] = {
     val dialog = new Dialog[LogicalOpNode]() {
       title = "Add Logical Op"
     }
@@ -276,7 +294,10 @@ object UvmLogFilterGUI extends JFXApp {
 
     val opCombo = new ComboBox[String]() {
       items = ObservableBuffer("AND", "OR", "NOT")
-      value = "AND"
+      value = lop match {
+        case Some(op) => op.op
+        case None => "AND"
+      }
     }
 
     val grid = new GridPane() {

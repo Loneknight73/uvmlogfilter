@@ -30,14 +30,20 @@ trait FilterPane {
   def getFilter(): LogRecordFilter
 }
 
-class IdFilterPane(f: Option[IdLogRecordFilter]) extends FilterPane {
+class IdFilterPane(of: Option[LogRecordFilter]) extends FilterPane {
+
+  val (initMatchType, initId) = of match {
+    case Some(f: IdLogRecordFilter) => (f.matchtype, f.s)
+    case None => ("contains", "")
+  }
 
   val matchCombo = new ComboBox[String]() {
     items = ObservableBuffer("is", "contains")
-    value = "contains"
+    value = initMatchType
   }
   val idText = new TextField() {
     promptText = "Id"
+    text = initId
   }
 
   val pane = new GridPane() {
@@ -58,13 +64,18 @@ class IdFilterPane(f: Option[IdLogRecordFilter]) extends FilterPane {
   }
 }
 
-class SeverityFilterPane(f: Option[SeverityLogRecordFilter]) extends FilterPane {
+class SeverityFilterPane(of: Option[LogRecordFilter]) extends FilterPane {
+
+  val initSev = of match {
+    case Some(f: SeverityLogRecordFilter) => f.s
+    case None => "UVM_INFO"
+  }
 
   val label = new Label("Severity")
 
   val sevCombo = new ComboBox[String]() {
     items = ObservableBuffer("UVM_INFO", "UVM_WARNING", "UVM_ERROR", "UVM_FATAL")
-    value = "UVM_INFO"
+    value = initSev
   }
 
   val pane = new GridPane() {
@@ -85,15 +96,22 @@ class SeverityFilterPane(f: Option[SeverityLogRecordFilter]) extends FilterPane 
   }
 }
 
-class TimeFilterPane(f: Option[TimeLogRecordFilter]) extends FilterPane {
+class TimeFilterPane(of: Option[LogRecordFilter]) extends FilterPane {
+
+  val (initMin, initMax) = of match {
+    case Some(f:TimeLogRecordFilter) => (f.min, f.max)
+    case None => (0, BigDecimal(Double.MaxValue))
+  }
 
   val label1 = new Label("Time inside")
   val minText = new TextField() {
     promptText = "min"
+    text = initMin.toString()
   }
   val label2 = new Label(":")
   val maxText = new TextField() {
     promptText = "max"
+    text = initMax.toString()
   }
 
   val pane = new GridPane() {
@@ -123,10 +141,16 @@ class TimeFilterPane(f: Option[TimeLogRecordFilter]) extends FilterPane {
   }
 }
 
-class HierFilterPane(f: Option[HierLogRecordFilter]) extends FilterPane {
+class HierFilterPane(of: Option[LogRecordFilter]) extends FilterPane {
+
+  val initHier = of match {
+    case Some(f: HierLogRecordFilter) => f.h
+    case None => ""
+  }
 
   val hierText = new TextField() {
     promptText = "hierarchy"
+    text = initHier
   }
 
   val pane = new GridPane() {
@@ -144,10 +168,16 @@ class HierFilterPane(f: Option[HierLogRecordFilter]) extends FilterPane {
   }
 }
 
-class CompNameFilterPane(f: Option[CompNameLogRecordFilter]) extends FilterPane {
+class CompNameFilterPane(of: Option[LogRecordFilter]) extends FilterPane {
+
+  val initComp = of match {
+    case Some(f: CompNameLogRecordFilter) => f.c
+    case None => ""
+  }
 
   val compNameText = new TextField() {
     promptText = "Component"
+    text = initComp
   }
 
   val pane = new GridPane() {
@@ -165,10 +195,16 @@ class CompNameFilterPane(f: Option[CompNameLogRecordFilter]) extends FilterPane 
   }
 }
 
-class TextContainsFilterPane(f: Option[TextContainsLogRecordFilter]) extends FilterPane {
+class TextContainsFilterPane(of: Option[LogRecordFilter]) extends FilterPane {
+
+  val initText = of match {
+    case Some(f: TextContainsLogRecordFilter) => f.s
+    case None => ""
+  }
 
   val textContainsText = new TextField() {
     promptText = "text"
+    text = initText
   }
 
   val pane = new GridPane() {

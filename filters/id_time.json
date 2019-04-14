@@ -1,0 +1,16 @@
+{
+  "LogicalOp": {
+    "children": [{
+      "IdLogRecordFilter": {
+        "matchtype": "contains",
+        "s": "c2"
+      }
+    }, {
+      "TimeLogRecordFilter": {
+        "max": 200.5678,
+        "min": 100.1234
+      }
+    }],
+    "op": "AND"
+  }
+}
