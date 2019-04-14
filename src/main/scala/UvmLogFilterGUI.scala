@@ -144,7 +144,7 @@ object UvmLogFilterGUI extends JFXApp {
   }
 
   def serializeFilters(): Option[String] = {
-    val fexpr = filterArea.getModel()
+    val fexpr = filterArea.getModel
     Option(fexpr) match {
       case None => {
         new Alert(AlertType.Error) {
@@ -271,11 +271,11 @@ object UvmLogFilterGUI extends JFXApp {
     val sep: Separator = new Separator()
     sep.setOrientation(Orientation.Vertical)
     val addLogicalOpButton = new Button("Add logical op")
-    addLogicalOpButton.onAction = (ae: ActionEvent) => filterArea.addLogicalOp()
+    addLogicalOpButton.onAction = (ae: ActionEvent) => filterArea.addLogicalOp2()
     val addFilterButton = new Button("Add filter")
     addFilterButton.onAction = (ae: ActionEvent) => filterArea.addFilter()
     val deleteSelectedButton = new Button("Delete selected")
-    deleteSelectedButton.onAction = (ae: ActionEvent) => filterArea.deleteSelected()
+    deleteSelectedButton.onAction = (ae: ActionEvent) => filterArea.deleteSelected2()
     val h = new HBox {
       padding = Insets(5)
       spacing = 5
@@ -322,7 +322,7 @@ object UvmLogFilterGUI extends JFXApp {
 
   def applyFilters() = {
     if (uvmLogRec != null) {
-      val of = filterArea.getModel().eval()
+      val of = filterArea.getModel.eval()
       of match {
         case None => {
           new Alert(AlertType.Error) {
