@@ -83,6 +83,17 @@ case class LogicalOpNode(op: String) extends FilterExpr {
   }
 }
 
+object LogicalOpNode {
+
+  def add(p: LogicalOpNode, c: FilterExpr): Unit = {
+    p.add(c)
+  }
+
+  def remove(p: LogicalOpNode, c: FilterExpr): Unit = {
+    p.remove(c)
+  }
+}
+
 case class FilterNode(f: LogRecordFilter) extends FilterExpr {
   override def toString: String = f.toString
 

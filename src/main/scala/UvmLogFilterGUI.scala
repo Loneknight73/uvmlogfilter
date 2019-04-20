@@ -271,11 +271,11 @@ object UvmLogFilterGUI extends JFXApp {
     val sep: Separator = new Separator()
     sep.setOrientation(Orientation.Vertical)
     val addLogicalOpButton = new Button("Add logical op")
-    addLogicalOpButton.onAction = (ae: ActionEvent) => filterArea.addLogicalOp2()
+    addLogicalOpButton.onAction = (ae: ActionEvent) => filterArea.addLogicalOp()
     val addFilterButton = new Button("Add filter")
     addFilterButton.onAction = (ae: ActionEvent) => filterArea.addFilter()
     val deleteSelectedButton = new Button("Delete selected")
-    deleteSelectedButton.onAction = (ae: ActionEvent) => filterArea.deleteSelected2()
+    deleteSelectedButton.onAction = (ae: ActionEvent) => filterArea.deleteSelected()
     val h = new HBox {
       padding = Insets(5)
       spacing = 5
@@ -322,25 +322,28 @@ object UvmLogFilterGUI extends JFXApp {
 
   def applyFilters() = {
     if (uvmLogRec != null) {
-      val of = filterArea.getModel.eval()
-      of match {
-        case None => {
-          new Alert(AlertType.Error) {
-            initOwner(stage)
-            title = "Error"
-            headerText = "Error"
-            contentText = "Unable to parse filter expression"
-          }.showAndWait()
-        }
-        case Some(f) => {
-          val lb = uvmLogRec.getFiltered(f)
-          val lbs = for {
-            lr <- lb
-            l <- lr.message
-          } yield (l)
-          val text = lbs.mkString("\n")
-          textArea.text = text
-          statusArea.setFilt(lb.length)
+      val model = Option(filterArea.getModel)
+      if (model != None) {
+        val of = model.get.eval()
+        of match {
+          case None => {
+            new Alert(AlertType.Error) {
+              initOwner(stage)
+              title = "Error"
+              headerText = "Error"
+              contentText = "Unable to parse filter expression"
+            }.showAndWait()
+          }
+          case Some(f) => {
+            val lb = uvmLogRec.getFiltered(f)
+            val lbs = for {
+              lr <- lb
+              l <- lr.message
+            } yield (l)
+            val text = lbs.mkString("\n")
+            textArea.text = text
+            statusArea.setFilt(lb.length)
+          }
         }
       }
     }

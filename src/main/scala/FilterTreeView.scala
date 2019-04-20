@@ -25,12 +25,13 @@ import scalafx.scene.control.Alert.AlertType
 import scalafx.scene.control.{Alert, TreeItem, TreeView}
 import scalafx.scene.input.MouseEvent
 
+
 class FilterTreeView extends TreeView[FilterExpr] {
 
   var model: FilterExpr = _
 
   this.onMouseClicked = (me: MouseEvent) => {
-    if (me.clickCount == 2) modifySelected2()
+    if (me.clickCount == 2) modifySelected()
   }
 
   def getModel: FilterExpr = model
@@ -39,6 +40,7 @@ class FilterTreeView extends TreeView[FilterExpr] {
     f match {
       case f: LogicalOpNode =>
         val item = new TreeItem[FilterExpr](f)
+        item.setExpanded(true)
         item.children = f.children.map(c => makeTree(c))
         item
       case _ => new TreeItem(f)
@@ -52,21 +54,25 @@ class FilterTreeView extends TreeView[FilterExpr] {
     model = root
   }
 
-  def getNearestLogOp(maybeTi: Option[TreeItem[FilterExpr]]): Option[TreeItem[FilterExpr]] = {
-    maybeTi match {
-      // If nothing selected, add to the root
-      // If there is no root, return None, otherwise Some(root)
-      case None => Option(this.getRoot())
-      // Otherwise, if it's a LogicalOpNode, add to it,
-      // If it's a FilterNode, add to its parent
-      case Some(ti) => {
-        val fexpr = ti.getValue()
-        fexpr match {
-          case LogicalOpNode(_) => Some(ti)
-          case FilterNode(_) => Some(ti.getParent())
-        }
-      }
-    }
+  def getParent(ti: TreeItem[FilterExpr]): (Option[(TreeItem[FilterExpr], FilterExpr)]) = {
+    for {
+      pti <- Option(ti.getParent())
+      pfe <- Option(pti.getValue())
+    } yield (pti, pfe)
+  }
+
+  def addTreeItem(p: TreeItem[FilterExpr], c: TreeItem[FilterExpr]): Unit = {
+    p.getChildren().add(c)
+  }
+
+  def addTreeItem(p: TreeItem[FilterExpr], c: TreeItem[FilterExpr], before: TreeItem[FilterExpr]): Unit = {
+    val i = p.getChildren().indexOf(before)
+    p.getChildren().add(i, c)
+  }
+
+
+  def removeTreeItem(p: TreeItem[FilterExpr], c: TreeItem[FilterExpr]): Unit = {
+    p.getChildren().remove(c)
   }
 
   def getFilterFromDialog(fn: Option[FilterNode]): Option[FilterNode] = {
@@ -78,7 +84,6 @@ class FilterTreeView extends TreeView[FilterExpr] {
     }
   }
 
-
   def getLogOpFromDialog(lop: Option[LogicalOpNode]): Option[LogicalOpNode] = {
     val dialog = UvmLogFilterGUI.addLogicalOpDialog(lop)
     val x = dialog.showAndWait()
@@ -88,12 +93,26 @@ class FilterTreeView extends TreeView[FilterExpr] {
     }
   }
 
-  def addFilter(): Unit = {
-    val selected = this.getSelectionModel().getSelectedItem()
-    val addTo = getNearestLogOp(Option(selected))
-    addTo match {
-      // A FilterNode cannot be the root of a FilterExpr
-      case None => {
+  def addNode(maybeParent: Option[(TreeItem[FilterExpr], FilterExpr)], maybeFe: Option[FilterExpr]): Unit = {
+    (maybeParent, maybeFe) match {
+      case (_, None) => () // Nothing to add
+      case (Some((pti, pfe: LogicalOpNode)), Some(fe)) => {
+        // View
+        val newti = new TreeItem(fe)
+        newti.setExpanded(true)
+        addTreeItem(pti, newti)
+        // Model
+        pfe.add(fe)
+      }
+      case (None, Some(fe: LogicalOpNode)) => {
+        // View
+        val newti = new TreeItem[FilterExpr](fe)
+        newti.setExpanded(true)
+        this.setRoot(newti)
+        // Model
+        model = fe
+      }
+      case (None, Some(fe: FilterNode)) => {
         new Alert(AlertType.Error) {
           initOwner(UvmLogFilterGUI.stage)
           title = "Error"
@@ -101,158 +120,98 @@ class FilterTreeView extends TreeView[FilterExpr] {
           contentText = "Filters cannot be root of the expression"
         }.showAndWait()
       }
-      case Some(parent) => {
-        val maybeFilter = getFilterFromDialog(None)
-        maybeFilter match {
-          case None => ()
-          case Some(newFilt) => {
-            val fti: TreeItem[FilterExpr] = new TreeItem(newFilt)
-            fti.setExpanded(true)
-            parent.getChildren().add(fti)
-            val p = parent.getValue()
-            p match {
-              case op: LogicalOpNode => op.add(newFilt)
-              case _ => () // Should never happen. TODO: throw exception
-            }
-          }
+      case _ => () // Bug
+    }
+  }
 
+  def getParentLogOp(maybeTi: Option[TreeItem[FilterExpr]]): Option[(TreeItem[FilterExpr], FilterExpr)] = {
+    maybeTi match {
+      // If nothing selected, add to the root
+      // If there is no root, return None, otherwise Some(root)
+      case None => {
+        Option(this.getRoot()) match {
+          case Some(root) => Some(root, model)
+          case None => None
+        }
+      }
+      // Otherwise, if it's a LogicalOpNode, add to it,
+      // If it's a FilterNode, add to its parent
+      case Some(ti) => {
+        ti.getValue() match {
+          case op: LogicalOpNode => Some((ti, op))
+          case f: FilterNode => Some(ti.getParent(), ti.getParent.getValue)
         }
       }
     }
   }
 
-  def addNode(maybeParent: Option[TreeItem[FilterExpr]], maybeFexp: Option[FilterExpr]): Unit = {
-    (maybeParent, maybeFexp) match {
-      case (_, None) => ()
-      case (Some(parentTi), Some(fexp)) => {
+  def addFilter(): Unit = {
+    val s: Option[TreeItem[FilterExpr]] = Option(this.getSelectionModel().getSelectedItem())
+    val maybeParent = getParentLogOp(s)
+    val maybeFilt = getFilterFromDialog(None)
+    addNode(maybeParent, maybeFilt)
+  }
+
+  def addLogicalOp(): Unit = {
+    val s: Option[TreeItem[FilterExpr]] = Option(this.getSelectionModel().getSelectedItem())
+    val maybeParent = getParentLogOp(s)
+    val maybeOp = getLogOpFromDialog(None)
+    addNode(maybeParent, maybeOp)
+  }
+
+  def substituteOp(oldti: TreeItem[FilterExpr], newop: LogicalOpNode): Unit = {
+    val x = getParent(oldti)
+    x match {
+      case Some((pti, pfe: LogicalOpNode)) => {
+        // View
+        val newti = new TreeItem[FilterExpr](newop)
+        newti.setExpanded(true)
+        newti.children.addAll(oldti.getChildren)
+        addTreeItem(pti, newti, oldti)
+        removeTreeItem(pti, oldti)
         // Model
-        val parentFExp = parentTi.getValue
-        parentFExp match {
-          case op: LogicalOpNode => op.add(fexp)
-          case _ => ()
+        val oldfe = oldti.getValue
+        oldfe match {
+          case oldop: LogicalOpNode => {
+            oldop.children.map(c => newop.add(c))
+            pfe.remove(oldop)
+            pfe.add(newop)
+          }
+          case _ => () // Bug
         }
-        // View
-        val newTi = new TreeItem(fexp)
-        newTi.setExpanded(true)
-        parentTi.getChildren.add(newTi)
       }
-      case (None, Some(fexp)) => {
-        // Model
-        model = fexp
-        // View
-        val newti = new TreeItem(fexp)
+      case None => {
+        val newti = new TreeItem[FilterExpr](newop)
+        newti.children.addAll(oldti.getChildren)
         newti.setExpanded(true)
         this.setRoot(newti)
-      }
-    }
-  }
-
-  def addLogicalOp2(): Unit = {
-    val s: Option[TreeItem[FilterExpr]] = Option(this.getSelectionModel().getSelectedItem())
-    val addTo = getNearestLogOp(s)
-    val maybeLogOp = getLogOpFromDialog(None)
-    addNode(addTo, maybeLogOp)
-  }
-
-  def substituteOp2(oldfti: TreeItem[FilterExpr], newOp: LogicalOpNode): Unit = {
-    val maybeParent = Option(oldfti.getParent())
-    val oldOp = oldfti.value()
-    oldOp match {
-      case lop: LogicalOpNode => {
-        maybeParent match {
-          case Some(parent) => {
-            val parentOp = parent.getValue
-            parentOp match {
-              case l: LogicalOpNode => {
-                lop.children.map(c => newOp.add(c))
-                l.remove(oldOp)
-                l.add(newOp)
-                // TreeItem
-                val newfti: TreeItem[FilterExpr] = new TreeItem(newOp)
-                newfti.children.addAll(oldfti.getChildren)
-                newfti.setExpanded(true)
-                parent.getChildren().remove(oldfti)
-                parent.getChildren().add(newfti)
-              }
-              case _ => ()
-            }
-          }
-          // Root
-          case None => {
-            lop.children.map(c => newOp.add(c))
-            val newfti: TreeItem[FilterExpr] = new TreeItem(newOp)
-            newfti.children.addAll(oldfti.getChildren)
-            newfti.setExpanded(true)
-            this.setRoot(newfti)
-            model = newOp
-          }
+        // Model
+        val oldfe = oldti.getValue
+        oldfe match {
+          case oldop: LogicalOpNode => {}
+            oldop.children.map(c => newop.add(c))
+            model = newop
+          case _ => () //Bug
         }
       }
-      case _ => ()
     }
   }
 
-
-  def substituteOp(oldfti: TreeItem[FilterExpr], newOp: LogicalOpNode): Unit = {
-    val parent = oldfti.getParent()
-    if (parent != null) {
-      val oldOp = oldfti.value()
-      oldOp match {
-        case lop: LogicalOpNode => {
-          // FilterExpr
-          val parentOp = parent.getValue
-          parentOp match {
-            case l: LogicalOpNode => {
-              lop.children.map(c => newOp.add(c))
-              l.remove(oldOp)
-              l.add(newOp)
-              // TreeItem
-              val newfti: TreeItem[FilterExpr] = new TreeItem(newOp)
-              newfti.children.addAll(oldfti.getChildren)
-              newfti.setExpanded(true)
-              parent.getChildren().add(newfti)
-              parent.getChildren().remove(oldfti)
-            }
-            case _ => ()
-          }
-        }
-        case _ => ()
-      }
-    }
-    else { // Root
-      val oldOp = oldfti.value()
-      oldOp match {
-        case lop: LogicalOpNode => {
-          lop.children.map(c => newOp.add(c))
-          val newfti: TreeItem[FilterExpr] = new TreeItem(newOp)
-          newfti.children.addAll(oldfti.getChildren)
-          newfti.setExpanded(true)
-          this.setRoot(newfti)
-          model = newOp
-        }
-        case _ => ()
-      }
-    }
-  }
-
-
-  def substituteFn(oldfti: TreeItem[FilterExpr], newFn: FilterNode) = {
-    val addTo = getNearestLogOp(Option(oldfti))
-    addTo match {
-      case None => () // TODO: bug
-      case Some(parent) => {
-        val newfti: TreeItem[FilterExpr] = new TreeItem(newFn)
+  def substituteFn(oldti: TreeItem[FilterExpr], newfn: FilterNode) = {
+    val x = getParent(oldti)
+    x match {
+      case Some((pti, pfe: LogicalOpNode)) => {
+        // View
+        val newfti = new TreeItem[FilterExpr](newfn)
         newfti.setExpanded(true)
-        parent.getChildren().remove(oldfti)
-        parent.getChildren.add(newfti)
-        val p = parent.value()
-        p match {
-          case op: LogicalOpNode => {
-            op.remove(oldfti.getValue())
-            op.add(newFn)
-          }
-        }
+        addTreeItem(pti, newfti, oldti)
+        removeTreeItem(pti, oldti)
+        // Model
+        val oldfe = oldti.getValue
+        LogicalOpNode.remove(pfe, oldfe)
+        LogicalOpNode.add(pfe, newfn)
       }
+      case _ => () // Bug
     }
   }
 
@@ -261,7 +220,7 @@ class FilterTreeView extends TreeView[FilterExpr] {
       case lop: LogicalOpNode => {
         for {
           newOp <- getLogOpFromDialog(Some(lop))
-        } yield substituteOp2(ti, newOp)
+        } yield substituteOp(ti, newOp)
       }
       case fn: FilterNode => {
         for {
@@ -271,34 +230,29 @@ class FilterTreeView extends TreeView[FilterExpr] {
     }
   }
 
-  def modifySelected2() = {
+  def modifySelected() = {
     for {
       s <- Option(this.getSelectionModel().getSelectedItem())
     } yield modifyNode(s)
   }
 
   def deleteNode(ti: TreeItem[FilterExpr]): Unit = {
-    val maybeParent = Option(ti.getParent)
-    maybeParent match {
-      case Some(parentTi) => {
-        // Model
-        val parentFExp = parentTi.getValue
-        val fe = ti.getValue
-        parentFExp match {
-          case op: LogicalOpNode => op.remove(fe)
-          case _ => ()
-        }
-        // View
-        parentTi.getChildren.remove(ti)
-      }
+    val x = getParent(ti)
+    x match {
       case None => {
         this.setRoot(null)
         model = null
       }
+      case Some((pti, pfe: LogicalOpNode)) => {
+        removeTreeItem(pti, ti)
+        val fe = ti.getValue
+        pfe.remove(fe)
+      }
+      case _ => () // Bug
     }
   }
 
-  def deleteSelected2() = {
+  def deleteSelected() = {
     for {
       s <- Option(this.getSelectionModel().getSelectedItem())
     } yield deleteNode(s)
