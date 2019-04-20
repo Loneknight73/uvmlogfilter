@@ -1,5 +1,5 @@
 /*
-    uvmlogfilter - A Java program to filter UVM logs
+    uvmlogfilter - A Scala program to filter UVM logs
     Copyright (C) 2019-present  Loneknight73
 
     This program is free software: you can redistribute it and/or modify
