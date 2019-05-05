@@ -21,7 +21,9 @@ The result of the filtering operation (i.e. the filtered records) can be saved i
 The simplest way to launch the program is to download the latest released .jar file from [Releases](https://github.com/Loneknight73/uvmlogfilter/releases).
 After launching it (by double clicking on it or, using a terminal, by typing "java -jar </path/to/jar>"), this window opens:
 
-![](images/Initial.PNG =200x)
+![](images/Initial.PNG)
+
+<img src="images/Initial.PNG" width="70" />
 
 You can start adding filters, even without opening a file first.
 The first thing to do is to click on "Add logical op" since the root of the filter tree. For example, choose "AND".
