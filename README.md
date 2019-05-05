@@ -2,8 +2,9 @@
 A Scala program to filter UVM logs
 
 ## Purpose
-The goal of this program is to perform filtering of UVM logs to extract only informations that may be interesting to the user.
-The whole log is divided in records. The first one starts at the first line recognized as a UVM_* message, and ends at the last line before the next UVM_* message (or at the end of the file).
+The goal of this program is to perform filtering of UVM logs to extract only information that may be interesting to the user.
+The whole log is divided in records, that start at lines recognized as a UVM_* message, 
+and end at the last line before the next UVM_* message (or at the end of the file).
 Currently logs can be filtered based on:
 
 * Severity
@@ -14,7 +15,8 @@ Currently logs can be filtered based on:
 * Text (in the entire record except the first line)
 
 Basic filters like the ones described above can be combined using logical operators (AND,OR,NOT) to produce more complex filters.
-The result of filtering can be saved in a text file.
+The filter expression tree can be saved in a JSON file and reloaded later.
+The result of the filtering operation (i.e. the filtered records) can be saved in a text file.
 ## Usage
 The simplest way to launch the program is to download the latest released .jar file from [Releases](https://github.com/Loneknight73/uvmlogfilter/releases).
 After launching it (by double clicking on it or, using a terminal, by typing "java -jar </path/to/jar>"), this window opens:
