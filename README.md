@@ -23,8 +23,6 @@ After launching it (by double clicking on it or, using a terminal, by typing "ja
 
 ![](images/Initial.PNG)
 
-<img src="images/Initial.PNG" width="70" />
-
 You can start adding filters, even without opening a file first.
 The first thing to do is to click on "Add logical op" since the root of the filter tree. For example, choose "AND".
 
@@ -49,6 +47,17 @@ You can now press "Apply filters":
 
 and in the text area only the UVM records with id="c2" and time between 100 and 200 will be displayed. You can then choose to save the filtering results in a new file using "File -> Save as ..."
 
+It is possible to modify already existing filters/logical operations by double clicking on them.
+
+In the status bar, at the bottom of the window, you can find some useful information:
+* name of the log file opened
+* name of the filter file loaded
+* number of the total log records parsed and of those filtered 
+
+## Filter save/restore
+It is possible to save and restore the filters entered through the GUI in a JSON file, to be able to use them
+in a different session without having to rebuild the filtering expression tree by hand.
+
 ## Limitations
 The program is currently only a prototype, but it can be used.
 However it does not come with any guarantee, so you run at your own risk.
@@ -57,13 +66,11 @@ Here I will list some of the possible improvements:
 
 * I have tried the program on some logs at work. Its performance was not a problem, but the logs were not huge.
   On very big logs it may be unbearably slow. A possible solution, in this case, might be to use Spark.
-* The GUI is not very user friendly.
+* The GUI is not particularly user friendly, for example copy/paste of filter subtrees or drag and drop of the same is not supported
 * Error conditions are not checked very thoroughly
-* UVM messages line parsing may fail 
-
-Please consider that the screenshots above may not correspond to the latest version, and that some functionality may have been added.
+* UVM messages line parsing may fail, if they are not formatted in the standard way
 
 Contributing UVM logs on which the program does not work, or just as an help to test the program is welcome.
-
+Of course, this is true only if you are allowed by your organization and if the logs do not disclose any sensitive information.
   
 
